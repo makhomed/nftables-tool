@@ -19,6 +19,7 @@ import ipaddress
 import json
 import requests
 import secrets
+import sys
 
 # }}}
 
@@ -33,7 +34,7 @@ def atomic_write_text(content, filename):
 
 # }}}
 
-# retry decorator {{{
+# Cloudflare API {{{
 
 def retry(max_retries=8, min_delay=1, backoff=2, max_delay=128):
     def decorator(func):
@@ -57,10 +58,6 @@ def retry(max_retries=8, min_delay=1, backoff=2, max_delay=128):
         return wrapped_function
     return decorator
 
-# }}}
-
-# Cloudflare API {{{
-
 requests_connect_timeout = 10
 requests_read_timeout = 10
 
@@ -81,35 +78,17 @@ def api_cloudlare_get_ips():
     assert isinstance(errors, list) and not errors, f"errors is {errors}"
     assert isinstance(messages, list) and not messages, f"messages is {messages}"
     return result
-# }}}
 
-# set_local_ipv6_subnets function {{{
-
-local_ipv6_subnets = None
-
-def set_local_ipv6_subnets():
-    global local_ipv6_subnets
-    local_ipv6_subnets = list()
-    interfaces = json.loads(run("ip -json addr", hide=True).stdout)
-    interfaces = [ interface for interface in interfaces if interface['link_type'] == 'ether' ]
-    for interface in interfaces:
-        for addr_info in interface['addr_info']:
-            if addr_info['family'] != 'inet6': continue
-            if addr_info['scope'] != 'global': continue
-            address = ( addr_info['local'], addr_info['prefixlen'])
-            local_ipv6_subnets.append(ipaddress.IPv6Interface(address).network)
 # }}}
 
 # set_cloudflare_subnets function {{{
 
-cloudflare_etag = None
 cloudflare_ipv4_subnets = None
 cloudflare_ipv6_subnets = None
 cloudflare_china_ipv4_subnets = None
 cloudflare_china_ipv6_subnets = None
 
 def set_cloudflare_subnets():
-    global cloudflare_etag
     global cloudflare_ipv4_subnets
     global cloudflare_ipv6_subnets
     global cloudflare_china_ipv4_subnets
@@ -119,7 +98,6 @@ def set_cloudflare_subnets():
     cloudflare_china_ipv4_subnets = list()
     cloudflare_china_ipv6_subnets = list()
     result = api_cloudlare_get_ips()
-    cloudflare_etag = result['etag']
     for ipv4_cidr in result['ipv4_cidrs']:
         cloudflare_ipv4_subnets.append(ipaddress.IPv4Network(ipv4_cidr, strict=True))
     for ipv6_cidr in result['ipv6_cidrs']:
@@ -131,8 +109,19 @@ def set_cloudflare_subnets():
         elif isinstance(ip_network, ipaddress.IPv6Network):
             cloudflare_china_ipv6_subnets.append(ip_network)
         else:
-            raise ValueError(f"unexpected instance of class {ip_network.__class__.__name__}")
+            raise ValueError(f"unexpected '{ip_network}' instance of class {ip_network.__class__.__name__}")
 
+# }}}
+
+# set_extra_ipv6_subnets function {{{
+
+extra_ipv6_subnets = None
+
+def set_extra_ipv6_subnets():
+    global extra_ipv6_subnets
+    extra_ipv6_subnets = list()
+    for extra_ipv6_cidr in sys.argv[1:]:
+        extra_ipv6_subnets.append(ipaddress.IPv6Network(extra_ipv6_cidr, strict=True))
 # }}}
 
 # nftables_allowed_ipv6 template {{{
@@ -143,8 +132,8 @@ set allowed_ipv6 {
     flags constant, interval
     auto-merge
     elements = {
-{% for local_ipv6_subnet in local_ipv6_subnets %}
-        {{ local_ipv6_subnet }},
+{% for extra_ipv6_subnet in extra_ipv6_subnets %}
+        {{ extra_ipv6_subnet }},
 {% endfor %}
 {% for cloudflare_ipv6_subnet in cloudflare_ipv6_subnets %}
         {{ cloudflare_ipv6_subnet }},
@@ -162,12 +151,12 @@ set allowed_ipv6 {
 filename = Path('/etc/sysconfig/nftables-allowed-ipv6.conf')
 
 def main():
-    set_local_ipv6_subnets()
+    set_extra_ipv6_subnets()
     set_cloudflare_subnets()
     environment = Environment(loader=BaseLoader(), keep_trailing_newline=True, trim_blocks=True, lstrip_blocks=True)
     template = environment.from_string(nftables_allowed_ipv6)
     new_content = template.render(
-        local_ipv6_subnets=local_ipv6_subnets,
+        extra_ipv6_subnets=extra_ipv6_subnets,
         cloudflare_ipv6_subnets=cloudflare_ipv6_subnets,
         cloudflare_china_ipv6_subnets=cloudflare_china_ipv6_subnets
     )
