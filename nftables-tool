@@ -1,11 +1,12 @@
 #!/usr/bin/python3 -u
 
-""" Generate /etc/sysconfig/nftables-allowed-ipv6.conf
+""" Generate /etc/sysconfig/nftables-allowed-ipv4.conf
+         and /etc/sysconfig/nftables-allowed-ipv6.conf
 """
 
 __contact__ = "https://github.com/makhomed/nftables-tool"
 __license__ = "GNU General Public License version 3"
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 
 # python -m pip install --upgrade-strategy eager --upgrade Jinja2 requests invoke
 
@@ -113,18 +114,46 @@ def set_cloudflare_subnets():
 
 # }}}
 
-# set_extra_ipv6_subnets function {{{
+# set_extra_subnets function {{{
 
+extra_ipv4_subnets = None
 extra_ipv6_subnets = None
 
-def set_extra_ipv6_subnets():
+def set_extra_subnets():
+    global extra_ipv4_subnets
     global extra_ipv6_subnets
+    extra_ipv4_subnets = list()
     extra_ipv6_subnets = list()
-    for extra_ipv6_cidr in sys.argv[1:]:
-        extra_ipv6_subnets.append(ipaddress.IPv6Network(extra_ipv6_cidr, strict=True))
+    for extra_cidr in sys.argv[1:]:
+        ip_network = ipaddress.ip_network(extra_cidr, strict=True)
+        if isinstance(ip_network, ipaddress.IPv4Network):
+            extra_ipv4_subnets.append(ip_network)
+        elif isinstance(ip_network, ipaddress.IPv6Network):
+            extra_ipv6_subnets.append(ip_network)
+        else:
+            raise ValueError(f"unexpected '{ip_network}' instance of class {ip_network.__class__.__name__}")
 # }}}
 
-# nftables_allowed_ipv6 template {{{
+# Jinja2 templates {{{
+
+nftables_allowed_ipv4 = """
+set allowed_ipv4 {
+    type ipv4_addr
+    flags constant, interval
+    auto-merge
+    elements = {
+{% for extra_ipv4_subnet in extra_ipv4_subnets %}
+        {{ extra_ipv4_subnet }},
+{% endfor %}
+{% for cloudflare_ipv4_subnet in cloudflare_ipv4_subnets %}
+        {{ cloudflare_ipv4_subnet }},
+{% endfor %}
+{% for cloudflare_china_ipv4_subnet in cloudflare_china_ipv4_subnets %}
+        {{ cloudflare_china_ipv4_subnet }},
+{% endfor %}
+    }
+}
+"""
 
 nftables_allowed_ipv6 = """
 set allowed_ipv6 {
@@ -144,25 +173,39 @@ set allowed_ipv6 {
     }
 }
 """
+
 # }}}
 
 # main function {{{
 
-filename = Path('/etc/sysconfig/nftables-allowed-ipv6.conf')
+ipv4_filename = Path('/etc/sysconfig/nftables-allowed-ipv4.conf')
+ipv6_filename = Path('/etc/sysconfig/nftables-allowed-ipv6.conf')
 
 def main():
-    set_extra_ipv6_subnets()
+    set_extra_subnets()
     set_cloudflare_subnets()
+
     environment = Environment(loader=BaseLoader(), keep_trailing_newline=True, trim_blocks=True, lstrip_blocks=True)
-    template = environment.from_string(nftables_allowed_ipv6)
-    new_content = template.render(
+    ipv4_template = environment.from_string(nftables_allowed_ipv4)
+    ipv6_template = environment.from_string(nftables_allowed_ipv6)
+
+    old_ipv4_content = ipv4_filename.read_text() if ipv4_filename.is_file() else None
+    new_ipv4_content = ipv4_template.render(
+        extra_ipv4_subnets=extra_ipv4_subnets,
+        cloudflare_ipv4_subnets=cloudflare_ipv4_subnets,
+        cloudflare_china_ipv4_subnets=cloudflare_china_ipv4_subnets
+    )
+
+    old_ipv6_content = ipv6_filename.read_text() if ipv6_filename.is_file() else None
+    new_ipv6_content = ipv6_template.render(
         extra_ipv6_subnets=extra_ipv6_subnets,
         cloudflare_ipv6_subnets=cloudflare_ipv6_subnets,
         cloudflare_china_ipv6_subnets=cloudflare_china_ipv6_subnets
     )
-    old_content = filename.read_text() if filename.is_file() else None
-    if new_content != old_content:
-        atomic_write_text(new_content, filename)
+
+    if new_ipv4_content != old_ipv4_content or new_ipv6_content != old_ipv6_content:
+        atomic_write_text(new_ipv4_content, ipv4_filename)
+        atomic_write_text(new_ipv6_content, ipv6_filename)
         run('/etc/sysconfig/nftables.conf')
 
 if __name__ == '__main__':
