@@ -11,7 +11,7 @@ But, also it is possible to add extra IPv4 and/or IPv6 subnets in CIDR notation 
 
 See `contrib/nftables.conf <https://github.com/makhomed/nftables-tool/blob/master/contrib/nftables.conf>`_ for example of usage of these generated ipv4_addr / ipv6_addr sets.
 
-See also the `nginx-cloudflare tool<https://github.com/makhomed/nginx-cloudflare>`_, which can be used instead of nftables-tool, if the Linux server must simultaneously allow two types of connections - both direct connections from clients and connections only from Cloudflare networks - in this case, filtering is applied at the nginx level through the geo module.
+See also the `nginx-cloudflare tool<https://github.com/makhomed/nginx-cloudflare>`_ , which can be used instead of nftables-tool, if the Linux server must simultaneously allow two types of connections - both direct connections from clients and connections only from Cloudflare networks - in this case, filtering is applied at the nginx level through the geo module.
 
 Installation
 ------------
