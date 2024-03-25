@@ -56,7 +56,7 @@ or
 ```
 RANDOM_DELAY=360
 
-0 0 * * * root /opt/nftables-tool/nftables-tool 172.21.0.0/16 2001:DB8:11:22::/64 2001:DB8:99:77::/64
+0 0 * * * root /opt/nftables-tool/nftables-tool 172.21.0.0/16 2001:DB8:1:2::/64 2001:DB8:8:9::/64
 ```
 
 ## TODO
