@@ -1,4 +1,4 @@
-# nftables-tool (version 1.2.1)
+# nftables-tool (version 1.2.3)
 
 Generate `/etc/sysconfig/nftables-allowed-ipv4.conf` and `/etc/sysconfig/nftables-allowed-ipv6.conf`
 
@@ -11,26 +11,23 @@ But, also it is possible to add extra IPv4 and/or IPv6 subnets in CIDR notation 
 See [`contrib/nftables.conf`](https://github.com/makhomed/nftables-tool/blob/master/contrib/nftables.conf)
 for example of usage of these generated ipv4_addr / ipv6_addr sets.
 
-See also the [`nginx-cloudflare`](https://github.com/makhomed/nginx-cloudflare), which can be used instead of nftables-tool, 
-if the Linux server must simultaneously allow two types of connections - both direct connections from clients 
+See also the [`nginx-cloudflare`](https://github.com/makhomed/nginx-cloudflare), which can be used instead of nftables-tool,
+if the Linux server must simultaneously allow two types of connections - both direct connections from clients
 and connections only from Cloudflare networks - in this case, filtering can be applied only at the nginx level,
 through the geo module.
 
 ## Installation
 > [!IMPORTANT]
-> Python 3.11+ and [Jinja2](https://jinja.palletsprojects.com/en/3.1.x/), [requests](https://requests.readthedocs.io/), [invoke](https://www.pyinvoke.org/) modules required
+> Python 3.8+ and [Jinja2](https://jinja.palletsprojects.com/en/3.1.x/), [requests](https://requests.readthedocs.io/), [invoke](https://www.pyinvoke.org/) modules required
 ```
-dnf -y remove python-unversioned-command ; \
-dnf -y install python3.11 python3.11-pip ; \
-ln -sf /usr/bin/python3.11 /usr/bin/python ; \
-ln -sf /usr/bin/pip3.11 /usr/bin/pip ; \
-pip install --no-input --upgrade-strategy eager --upgrade Jinja2 requests invoke ; \
+dnf -y install python3 python3-pip python-unversioned-command ; \
+python -m pip install --no-input --upgrade-strategy eager --upgrade Jinja2 requests invoke ; \
 cd /opt ; git clone https://github.com/makhomed/nftables-tool.git
 ```
 
 ## Upgrade
 ```
-pip install --no-input --upgrade-strategy eager --upgrade Jinja2 requests invoke ; \
+python -m pip install --no-input --upgrade-strategy eager --upgrade Jinja2 requests invoke ; \
 cd /opt/nftables-tool ; git pull
 ```
 
