@@ -1,4 +1,4 @@
-# nftables-tool (version 1.2.3)
+# nftables-tool (version 1.2.4)
 
 Generate `/etc/sysconfig/nftables-allowed-ipv4.conf` and `/etc/sysconfig/nftables-allowed-ipv6.conf`
 
@@ -20,14 +20,14 @@ through the geo module.
 > [!IMPORTANT]
 > Python 3.8+ and [Jinja2](https://jinja.palletsprojects.com/), [requests](https://requests.readthedocs.io/), [invoke](https://www.pyinvoke.org/) modules required
 ```
-dnf -y install python3 python3-pip python-unversioned-command ; \
-python -m pip install --no-input --upgrade-strategy eager --upgrade Jinja2 requests invoke ; \
+dnf -y install python3 python3-pip ; \
+python3 -m pip install --no-input --upgrade-strategy eager --upgrade Jinja2 requests invoke ; \
 cd /opt ; git clone https://github.com/makhomed/nftables-tool.git
 ```
 
 ## Upgrade
 ```
-python -m pip install --no-input --upgrade-strategy eager --upgrade Jinja2 requests invoke ; \
+python3 -m pip install --no-input --upgrade-strategy eager --upgrade Jinja2 requests invoke ; \
 cd /opt/nftables-tool ; git pull
 ```
 

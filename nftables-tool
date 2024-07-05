@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+#!/usr/bin/python3 -u
 
 
 """ Generate /etc/sysconfig/nftables-allowed-ipv4.conf
@@ -9,7 +9,7 @@ By default only connections from Cloudflare IP allowed
 
 __contact__ = 'https://github.com/makhomed/nftables-tool'
 __license__ = 'GNU General Public License version 3'
-__version__ = '1.2.3'
+__version__ = '1.2.4'
 
 
 # includes {{{
